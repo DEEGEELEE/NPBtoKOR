@@ -69,22 +69,25 @@
 
     <!-- Add Player Modal -->
     <div id="add-player-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">Add New Player</h2>
-            <div class="space-y-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-3xl">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Add Multiple Players</h2>
+            <p class="text-gray-600 mb-6">Paste Japanese names in the left box and corresponding Korean names in the right box. Ensure each name is on a new line and the lists match.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Japanese Input -->
                 <div>
-                    <label for="new-japanese-name" class="block text-sm font-medium text-gray-700 mb-1">New Japanese Name</label>
-                    <input type="text" id="new-japanese-name" placeholder="田中 将大" class="w-full px-3 py-2 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="new-japanese-names" class="block text-sm font-medium text-gray-700 mb-1">Japanese Names</label>
+                    <textarea id="new-japanese-names" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="田中 将大&#10;菅野 智之"></textarea>
                 </div>
+                <!-- Korean Input -->
                 <div>
-                    <label for="new-korean-name" class="block text-sm font-medium text-gray-700 mb-1">New Korean Name</label>
-                    <input type="text" id="new-korean-name" placeholder="다나카 마사히로" class="w-full px-3 py-2 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="new-korean-names" class="block text-sm font-medium text-gray-700 mb-1">Korean Names</label>
+                    <textarea id="new-korean-names" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="다나카 마사히로&#10;스가노 토모유키"></textarea>
                 </div>
             </div>
-            <p id="modal-error" class="text-red-500 text-sm mt-4 hidden">Please fill out both names.</p>
+            <p id="modal-error" class="text-red-500 text-sm mt-4 hidden">Error message here.</p>
             <div class="mt-8 flex justify-end space-x-4">
                 <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
-                <button id="save-player-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Save Player</button>
+                <button id="save-player-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Save Players</button>
             </div>
         </div>
     </div>
@@ -455,8 +458,8 @@
             const addPlayerModal = document.getElementById('add-player-modal');
             const cancelBtn = document.getElementById('cancel-btn');
             const savePlayerBtn = document.getElementById('save-player-btn');
-            const newJapaneseNameInput = document.getElementById('new-japanese-name');
-            const newKoreanNameInput = document.getElementById('new-korean-name');
+            const newJapaneseNamesInput = document.getElementById('new-japanese-names');
+            const newKoreanNamesInput = document.getElementById('new-korean-names');
             const modalError = document.getElementById('modal-error');
 
             // Multiple Translate Modal Elements
@@ -504,8 +507,8 @@
             
             function clearAndHideAddPlayerModal() {
                  hideModal(addPlayerModal);
-                 newJapaneseNameInput.value = '';
-                 newKoreanNameInput.value = '';
+                 newJapaneseNamesInput.value = '';
+                 newKoreanNamesInput.value = '';
                  modalError.classList.add('hidden');
             }
             
@@ -516,17 +519,42 @@
             }
 
 
-            function saveNewPlayer() {
-                const newJpnName = newJapaneseNameInput.value.trim();
-                const newKorName = newKoreanNameInput.value.trim();
+            function saveNewPlayers() {
+                modalError.classList.add('hidden'); // Hide error initially
+                const jpnNamesList = newJapaneseNamesInput.value.trim().split('\n');
+                const korNamesList = newKoreanNamesInput.value.trim().split('\n');
 
-                if (newJpnName && newKorName) {
-                    playerNames[newJpnName] = newKorName;
-                    displayAvailableNames();
+                // Filter out empty lines that might result from trailing newlines
+                const filteredJpnNames = jpnNamesList.filter(name => name.trim() !== '');
+                const filteredKorNames = korNamesList.filter(name => name.trim() !== '');
+
+                if (filteredJpnNames.length === 0 && filteredKorNames.length === 0) {
                     clearAndHideAddPlayerModal();
-                } else {
-                    modalError.classList.remove('hidden');
+                    return;
                 }
+
+                if (filteredJpnNames.length !== filteredKorNames.length) {
+                    modalError.textContent = "The number of Japanese and Korean names must match.";
+                    modalError.classList.remove('hidden');
+                    return;
+                }
+
+                let addedCount = 0;
+                for (let i = 0; i < filteredJpnNames.length; i++) {
+                    const jpnName = filteredJpnNames[i].trim();
+                    const korName = filteredKorNames[i].trim();
+
+                    if (jpnName && korName) {
+                        playerNames[jpnName] = korName;
+                        addedCount++;
+                    }
+                }
+
+                if (addedCount > 0) {
+                    displayAvailableNames();
+                }
+                
+                clearAndHideAddPlayerModal();
             }
             
             function downloadDatabase() {
@@ -587,7 +615,7 @@
             addPlayerBtn.addEventListener('click', () => showModal(addPlayerModal));
             downloadBtn.addEventListener('click', downloadDatabase);
             cancelBtn.addEventListener('click', clearAndHideAddPlayerModal);
-            savePlayerBtn.addEventListener('click', saveNewPlayer);
+            savePlayerBtn.addEventListener('click', saveNewPlayers);
             
             // Multiple Translate Listeners
             translateMultipleBtn.addEventListener('click', () => showModal(translateMultipleModal));
