@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese to Korean Baseball Name Translator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen py-8">
+
+    <div class="w-full max-w-2xl mx-auto p-4">
+        <div class="bg-white rounded-2xl card-shadow overflow-hidden">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-semibold text-blue-600">일본 야구선수 이름 번역기</h2>
+                    <p class="text-gray-500 mt-2">Translate Japanese player names to their Korean readings.</p>
+                </div>
+
+                <!-- Translator Input Section -->
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                             <label for="japanese-name" class="block text-sm font-medium text-gray-700">Japanese Name (日本語)</label>
+                             <button id="translate-multiple-btn" class="text-sm text-blue-600 hover:underline">Translate Multiple Players</button>
+                        </div>
+                        <input type="text" id="japanese-name" placeholder="例) 大谷 翔平 or ケイ" class="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
+
+                    <div>
+                        <label for="korean-name" class="block text-sm font-medium text-gray-700 mb-1">Korean Name (韓国語)</label>
+                        <div id="korean-name" class="w-full px-4 py-3 bg-gray-100 rounded-lg border border-gray-200 min-h-[50px] flex flex-col justify-center">
+                            <span class="text-gray-500">번역 결과...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data List Section -->
+            <div class="bg-gray-50 p-6 border-t border-gray-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold text-gray-700">Available Names in Database</h3>
+                    <div class="flex space-x-2">
+                        <button id="add-player-btn" class="bg-green-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition">
+                            Add Player
+                        </button>
+                        <button id="download-btn" class="bg-purple-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition">
+                            Download
+                        </button>
+                    </div>
+                </div>
+                <div id="name-list" class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-sm text-gray-600 max-h-48 overflow-y-auto">
+                    <!-- Names will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+        <footer class="text-center mt-6 text-xs text-gray-400">
+            <p>Player database is shared and updated in real-time.</p>
+        </footer>
+    </div>
+
+    <!-- Add Player Modal -->
+    <div id="add-player-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-3xl">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Add Multiple Players</h2>
+            
+            <!-- File Upload Section -->
+            <div class="mb-6 border-b pb-6">
+                <p class="text-gray-600 mb-3 text-sm">Upload a .csv file. Column A should be Japanese names, Column B should be Korean names.</p>
+                <input type="file" id="player-file-input" class="hidden" accept=".csv">
+                <label for="player-file-input" class="cursor-pointer inline-block bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 transition">
+                    Choose CSV File
+                </label>
+            </div>
+
+            <!-- Manual Entry Section -->
+            <p class="text-gray-600 mb-4">Or, add manually:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Japanese Input -->
+                <div>
+                    <label for="new-japanese-names" class="block text-sm font-medium text-gray-700 mb-1">Japanese Names</label>
+                    <textarea id="new-japanese-names" rows="8" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="田中 将大&#10;菅野 智之"></textarea>
+                </div>
+                <!-- Korean Input -->
+                <div>
+                    <label for="new-korean-names" class="block text-sm font-medium text-gray-700 mb-1">Korean Names</label>
+                    <textarea id="new-korean-names" rows="8" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="다나카 마사히로&#10;스가노 토모유키"></textarea>
+                </div>
+            </div>
+            <p id="modal-error" class="text-red-500 text-sm mt-4 hidden">Error message here.</p>
+            <div class="mt-8 flex justify-end space-x-4">
+                <button id="save-player-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Save Players</button>
+                <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Translate Multiple Modal -->
+    <div id="translate-multiple-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-3xl">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Translate Multiple Players</h2>
+            <p class="text-gray-600 mb-6">Paste a list of Japanese names below (one name per line).</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Input Area -->
+                <div class="flex flex-col">
+                    <label for="multiple-jpn-input" class="block text-sm font-medium text-gray-700 mb-1">Japanese Names</label>
+                    <textarea id="multiple-jpn-input" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="大谷 翔平&#10;山本 由伸&#10;ケイ"></textarea>
+                </div>
+                <!-- Output Area -->
+                <div class="flex flex-col">
+                     <label class="block text-sm font-medium text-gray-700 mb-1">Translation Results</label>
+                    <div id="multiple-results-output" class="w-full p-3 bg-gray-100 rounded-md border border-gray-200 h-full min-h-[200px] overflow-y-auto">
+                        <span class="text-gray-400">Results will appear here...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end">
+                <button id="close-multiple-modal-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Close</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- FIREBASE SETUP ---
+            let db, auth;
+            try {
+                // These global variables are provided by the environment.
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Sign in the user. Use the provided token if available, otherwise sign in anonymously.
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // Load players from the database
+                loadPlayers();
+
+            } catch (e) {
+                console.error("Firebase initialization failed:", e);
+                alert("Could not connect to the database. Please check the console for errors.");
+                return;
+            }
+
+            // --- DATA SOURCE ---
+            // This object will be populated from the live Firestore database.
+            const playerNames = {}; 
+
+            // --- DOM ELEMENTS ---
+            const japaneseInput = document.getElementById('japanese-name');
+            const koreanOutput = document.getElementById('korean-name');
+            const nameListContainer = document.getElementById('name-list');
+            const addPlayerBtn = document.getElementById('add-player-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const addPlayerModal = document.getElementById('add-player-modal');
+            const cancelBtn = document.getElementById('cancel-btn');
+            const savePlayerBtn = document.getElementById('save-player-btn');
+            const newJapaneseNamesInput = document.getElementById('new-japanese-names');
+            const newKoreanNamesInput = document.getElementById('new-korean-names');
+            const modalError = document.getElementById('modal-error');
+            const playerFileInput = document.getElementById('player-file-input');
+            const translateMultipleBtn = document.getElementById('translate-multiple-btn');
+            const translateMultipleModal = document.getElementById('translate-multiple-modal');
+            const closeMultipleModalBtn = document.getElementById('close-multiple-modal-btn');
+            const multipleJpnInput = document.getElementById('multiple-jpn-input');
+            const multipleResultsOutput = document.getElementById('multiple-results-output');
+
+            // --- FUNCTIONS ---
+
+            function loadPlayers() {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const playersCollectionRef = collection(db, `/artifacts/${appId}/public/data/players`);
+                
+                onSnapshot(playersCollectionRef, (snapshot) => {
+                    // Clear the local object before repopulating
+                    for (const key in playerNames) {
+                        delete playerNames[key];
+                    }
+                    snapshot.docs.forEach(doc => {
+                        const playerData = doc.data();
+                        playerNames[playerData.jpn] = playerData.kor;
+                    });
+                    displayAvailableNames();
+                });
+            }
+
+            function translateName() {
+                const inputName = japaneseInput.value.trim();
+                
+                if (inputName === "") {
+                    koreanOutput.innerHTML = `<span class="text-gray-500">번역 결과...</span>`;
+                    koreanOutput.classList.add('justify-center');
+                    return;
+                }
+
+                const foundPlayers = [];
+                
+                for (const jpnName in playerNames) {
+                    if (jpnName.includes(inputName)) {
+                        foundPlayers.push({ jpn: jpnName, kor: playerNames[jpnName] });
+                    }
+                }
+
+                foundPlayers.sort((a, b) => {
+                    if (a.jpn === inputName) return -1;
+                    if (b.jpn === inputName) return 1;
+                    if (a.jpn.startsWith(inputName) && !b.jpn.startsWith(inputName)) return -1;
+                    if (!a.jpn.startsWith(inputName) && b.jpn.startsWith(inputName)) return 1;
+                    return a.jpn.localeCompare(b.jpn, 'ja');
+                });
+
+                if (foundPlayers.length > 0) {
+                    koreanOutput.classList.remove('justify-center');
+                    const resultsHTML = foundPlayers.map(player => {
+                        return `<div class="w-full flex justify-between items-center text-sm py-2 border-b border-gray-100 last:border-b-0">
+                                    <span class="text-gray-700 pr-4">${player.jpn}</span>
+                                    <span class="font-bold text-blue-800 text-right">${player.kor}</span>
+                                </div>`;
+                    }).join('');
+                    koreanOutput.innerHTML = resultsHTML;
+
+                } else {
+                    koreanOutput.innerHTML = `<span class="text-red-600">Name not found in the database.</span>`;
+                    koreanOutput.classList.add('justify-center');
+                }
+            }
+
+            function displayAvailableNames() {
+                nameListContainer.innerHTML = ''; // Clear existing list
+                const sortedNames = Object.keys(playerNames).sort((a, b) => a.localeCompare(b, 'ja'));
+                for (const name of sortedNames) {
+                    const nameElement = document.createElement('div');
+                    nameElement.textContent = name;
+                    nameListContainer.appendChild(nameElement);
+                }
+            }
+
+            function showModal(modal) {
+                modal.classList.remove('hidden');
+            }
+
+            function hideModal(modal) {
+                modal.classList.add('hidden');
+            }
+            
+            function clearAndHideAddPlayerModal() {
+                 hideModal(addPlayerModal);
+                 newJapaneseNamesInput.value = '';
+                 newKoreanNamesInput.value = '';
+                 modalError.classList.add('hidden');
+                 playerFileInput.value = ''; // Reset file input
+            }
+            
+            function clearAndHideMultiTranslateModal() {
+                 hideModal(translateMultipleModal);
+                 multipleJpnInput.value = '';
+                 multipleResultsOutput.innerHTML = '<span class="text-gray-400">Results will appear here...</span>';
+            }
+
+            async function savePlayersToDB(playersToAdd) {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const playersCollectionRef = collection(db, `/artifacts/${appId}/public/data/players`);
+                const promises = playersToAdd.map(player => addDoc(playersCollectionRef, player));
+                
+                try {
+                    await Promise.all(promises);
+                } catch (error) {
+                    console.error("Error adding players to database: ", error);
+                    modalError.textContent = "Could not save players to the database.";
+                    modalError.classList.remove('hidden');
+                }
+            }
+
+            async function saveNewPlayers() {
+                modalError.classList.add('hidden');
+                const jpnNamesList = newJapaneseNamesInput.value.trim().split('\n');
+                const korNamesList = newKoreanNamesInput.value.trim().split('\n');
+
+                const filteredJpnNames = jpnNamesList.filter(name => name.trim() !== '');
+                const filteredKorNames = korNamesList.filter(name => name.trim() !== '');
+
+                if (filteredJpnNames.length === 0 && filteredKorNames.length === 0) {
+                    clearAndHideAddPlayerModal();
+                    return;
+                }
+
+                if (filteredJpnNames.length !== filteredKorNames.length) {
+                    modalError.textContent = "The number of Japanese and Korean names must match.";
+                    modalError.classList.remove('hidden');
+                    return;
+                }
+
+                const playersToAdd = [];
+                for (let i = 0; i < filteredJpnNames.length; i++) {
+                    const jpnName = filteredJpnNames[i].trim();
+                    const korName = filteredKorNames[i].trim();
+
+                    if (jpnName && korName) {
+                        playersToAdd.push({ jpn: jpnName, kor: korName });
+                    }
+                }
+
+                if (playersToAdd.length > 0) {
+                    await savePlayersToDB(playersToAdd);
+                }
+                
+                clearAndHideAddPlayerModal();
+            }
+            
+            function downloadDatabase() {
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                csvContent += "Japanese Name,Korean Name\n";
+
+                const sortedKeys = Object.keys(playerNames).sort((a, b) => a.localeCompare(b, 'ja'));
+
+                sortedKeys.forEach(jpnName => {
+                    const korName = playerNames[jpnName];
+                    const row = `"${jpnName}","${korName}"`;
+                    csvContent += row + "\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "player_database.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            function translateMultipleNames() {
+                const namesToTranslate = multipleJpnInput.value.trim().split('\n').filter(name => name.trim() !== '');
+                multipleResultsOutput.innerHTML = '';
+
+                if (namesToTranslate.length === 0) {
+                    multipleResultsOutput.innerHTML = '<span class="text-gray-400">Results will appear here...</span>';
+                    return;
+                }
+
+                const resultsFragment = document.createDocumentFragment();
+                let anyMatchesFound = false;
+
+                namesToTranslate.forEach((searchTerm, index) => {
+                    const trimmedSearchTerm = searchTerm.trim();
+                    const foundPlayers = [];
+                    for (const jpnName in playerNames) {
+                        if (jpnName.includes(trimmedSearchTerm)) {
+                            foundPlayers.push({ jpn: jpnName, kor: playerNames[jpnName] });
+                        }
+                    }
+
+                    foundPlayers.sort((a, b) => {
+                        if (a.jpn === trimmedSearchTerm) return -1;
+                        if (b.jpn === trimmedSearchTerm) return 1;
+                        if (a.jpn.startsWith(trimmedSearchTerm) && !b.jpn.startsWith(trimmedSearchTerm)) return -1;
+                        if (!a.jpn.startsWith(trimmedSearchTerm) && b.jpn.startsWith(trimmedSearchTerm)) return 1;
+                        return a.jpn.localeCompare(b.jpn, 'ja');
+                    });
+                    
+                    if (index > 0) {
+                        const separator = document.createElement('hr');
+                        separator.className = 'my-3 border-gray-200';
+                        resultsFragment.appendChild(separator);
+                    }
+
+                    if(foundPlayers.length > 0) {
+                        anyMatchesFound = true;
+                        foundPlayers.forEach(player => {
+                            const resultEl = document.createElement('div');
+                            resultEl.className = 'flex justify-between items-center text-sm mb-1';
+                            
+                            const jpnSpan = document.createElement('span');
+                            jpnSpan.textContent = player.jpn;
+                            jpnSpan.className = 'text-gray-700 pr-2';
+                            
+                            const korSpan = document.createElement('span');
+                            korSpan.textContent = player.kor;
+                            korSpan.className = 'font-semibold text-blue-700 text-right';
+                            
+                            resultEl.appendChild(jpnSpan);
+                            resultEl.appendChild(korSpan);
+                            resultsFragment.appendChild(resultEl);
+                        });
+                    }
+                });
+
+                if (!anyMatchesFound) {
+                     multipleResultsOutput.innerHTML = '<span class="text-red-500">No matches found for any of the entered names.</span>';
+                } else {
+                    multipleResultsOutput.appendChild(resultsFragment);
+                }
+            }
+            
+            function handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                Papa.parse(file, {
+                    encoding: "UTF-8",
+                    complete: async function(results) {
+                        const playersToAdd = [];
+                        results.data.forEach(row => {
+                            const jpnName = row[0] ? row[0].trim() : '';
+                            const korName = row[1] ? row[1].trim() : '';
+                            if (jpnName && korName) {
+                                playersToAdd.push({ jpn: jpnName, kor: korName });
+                            }
+                        });
+                        if(playersToAdd.length > 0) {
+                            await savePlayersToDB(playersToAdd);
+                        }
+                        clearAndHideAddPlayerModal();
+                    },
+                    error: function(error) {
+                        modalError.textContent = "Error parsing CSV file: " + error.message;
+                        modalError.classList.remove('hidden');
+                    }
+                });
+            }
+
+            // --- EVENT LISTENERS ---
+            japaneseInput.addEventListener('input', translateName);
+            addPlayerBtn.addEventListener('click', () => showModal(addPlayerModal));
+            downloadBtn.addEventListener('click', downloadDatabase);
+            cancelBtn.addEventListener('click', clearAndHideAddPlayerModal);
+            savePlayerBtn.addEventListener('click', saveNewPlayers);
+            playerFileInput.addEventListener('change', handleFileUpload);
+            
+            translateMultipleBtn.addEventListener('click', () => showModal(translateMultipleModal));
+            closeMultipleModalBtn.addEventListener('click', clearAndHideMultiTranslateModal);
+            multipleJpnInput.addEventListener('input', translateMultipleNames);
+            
+            addPlayerModal.addEventListener('click', (event) => {
+                if (event.target === addPlayerModal) {
+                    clearAndHideAddPlayerModal();
+                }
+            });
+            translateMultipleModal.addEventListener('click', (event) => {
+                if (event.target === translateMultipleModal) {
+                    clearAndHideMultiTranslateModal();
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
