@@ -139,56 +139,41 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // --- FIREBASE SETUP ---
             let db, auth;
-            let appId = 'default-app-id'; // Default value
+            let appId;
             let firebaseConfig;
 
-            // This block checks if the special environment variables are available.
-            // If they are, it uses them. This works in the development environment.
-            // If not, it will fail, and you should use your own config for deployment.
             try {
-                if (typeof __firebase_config !== 'undefined') {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    // This block runs in the development environment where special variables are available.
                     firebaseConfig = JSON.parse(__firebase_config);
                     appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                    
-                    const app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                    
-                    loadPlayers();
                 } else {
                     // ** FOR DEPLOYMENT (e.g., GitHub Pages) **
-                    // The special variables are not available. You must replace the placeholder
-                    // below with your own Firebase project's configuration object.
-                    // 1. Go to your Firebase project settings.
-                    // 2. In the "General" tab, scroll to "Your apps".
-                    // 3. Click on your web app and find the "Config" object.
-                    // 4. Copy that object and paste it here.
-                    
+                    // This block runs when the special variables are not available.
+                    // You MUST replace the placeholder below with your own Firebase project's configuration.
                     firebaseConfig = {
-                        apiKey: "YOUR_API_KEY",
-                        authDomain: "YOUR_AUTH_DOMAIN",
-                        projectId: "YOUR_PROJECT_ID",
-                        storageBucket: "YOUR_STORAGE_BUCKET",
-                        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-                        appId: "YOUR_APP_ID"
+                        apiKey: "AIzaSyBPI7gI6X2riVH7KUhz5vaiNnjApTejCvQ",
+                        authDomain: "npbtokor.firebaseapp.com",
+                        projectId: "npbtokor",
+                        storageBucket: "npbtokor.appspot.com",
+                        messagingSenderId: "471601639236",
+                        appId: "1:471601639236:web:faf72dc2e7d98ae928f111", // FIX: Added comma
+                        measurementId: "G-R1H8NBQ6LP"
                     };
-                    
-                    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-                       throw new Error("Firebase config is not set. Please update the code with your project's configuration.");
-                    }
-
-                    const app = initializeApp(firebaseConfig);
-                    db = getFirestore(app);
-                    auth = getAuth(app);
-                    await signInAnonymously(auth);
-                    loadPlayers();
+                    appId = firebaseConfig.appId; // Set appId from the hardcoded config
                 }
+                
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                loadPlayers();
 
             } catch (e) {
                 console.error("Firebase initialization failed:", e);
@@ -221,8 +206,8 @@
             // --- FUNCTIONS ---
 
             function getCollectionPath() {
-                const currentAppId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.appId;
-                return `artifacts/${currentAppId}/public/data/players`;
+                // FIX: The collection path MUST use the appId.
+                return `artifacts/${appId}/public/data/players`;
             }
 
             function loadPlayers() {
