@@ -98,8 +98,8 @@
             </div>
             <p id="modal-error" class="text-red-500 text-sm mt-4 hidden">Error message here.</p>
             <div class="mt-8 flex justify-end space-x-4">
-                <button id="save-player-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Save Players</button>
                 <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
+                <button id="save-player-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Save Players</button>
             </div>
         </div>
     </div>
@@ -139,33 +139,64 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // --- FIREBASE SETUP ---
             let db, auth;
+            let appId = 'default-app-id'; // Default value
+            let firebaseConfig;
+
+            // This block checks if the special environment variables are available.
+            // If they are, it uses them. This works in the development environment.
+            // If not, it will fail, and you should use your own config for deployment.
             try {
-                // These global variables are provided by the environment.
-                const firebaseConfig = JSON.parse(__firebase_config);
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                if (typeof __firebase_config !== 'undefined') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                    
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
 
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Sign in the user. Use the provided token if available, otherwise sign in anonymously.
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    
+                    loadPlayers();
                 } else {
+                    // ** FOR DEPLOYMENT (e.g., GitHub Pages) **
+                    // The special variables are not available. You must replace the placeholder
+                    // below with your own Firebase project's configuration object.
+                    // 1. Go to your Firebase project settings.
+                    // 2. In the "General" tab, scroll to "Your apps".
+                    // 3. Click on your web app and find the "Config" object.
+                    // 4. Copy that object and paste it here.
+                    
+                    firebaseConfig = {
+                        apiKey: "YOUR_API_KEY",
+                        authDomain: "YOUR_AUTH_DOMAIN",
+                        projectId: "YOUR_PROJECT_ID",
+                        storageBucket: "YOUR_STORAGE_BUCKET",
+                        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                        appId: "YOUR_APP_ID"
+                    };
+                    
+                    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                       throw new Error("Firebase config is not set. Please update the code with your project's configuration.");
+                    }
+
+                    const app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
                     await signInAnonymously(auth);
+                    loadPlayers();
                 }
-                
-                // Load players from the database
-                loadPlayers();
 
             } catch (e) {
                 console.error("Firebase initialization failed:", e);
-                alert("Could not connect to the database. Please check the console for errors.");
+                alert("Could not connect to the database. Please check the console for errors and ensure your Firebase configuration is correct in the code for deployment.");
                 return;
             }
 
             // --- DATA SOURCE ---
-            // This object will be populated from the live Firestore database.
             const playerNames = {}; 
 
             // --- DOM ELEMENTS ---
@@ -189,12 +220,15 @@
 
             // --- FUNCTIONS ---
 
+            function getCollectionPath() {
+                const currentAppId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.appId;
+                return `artifacts/${currentAppId}/public/data/players`;
+            }
+
             function loadPlayers() {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const playersCollectionRef = collection(db, `/artifacts/${appId}/public/data/players`);
+                const playersCollectionRef = collection(db, getCollectionPath());
                 
                 onSnapshot(playersCollectionRef, (snapshot) => {
-                    // Clear the local object before repopulating
                     for (const key in playerNames) {
                         delete playerNames[key];
                     }
@@ -280,8 +314,7 @@
             }
 
             async function savePlayersToDB(playersToAdd) {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const playersCollectionRef = collection(db, `/artifacts/${appId}/public/data/players`);
+                const playersCollectionRef = collection(db, getCollectionPath());
                 const promises = playersToAdd.map(player => addDoc(playersCollectionRef, player));
                 
                 try {
