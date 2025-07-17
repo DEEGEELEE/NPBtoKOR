@@ -1,506 +1,445 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚾ NPB 선수 이름 번역기</title>
+    <title>Japanese to Korean Baseball Name Translator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* 기본 스타일 및 폰트 설정 */
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-        
         body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: #f0f2f5;
-            color: #1c1e21;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
         }
-
-        /* 메인 컨테이너 스타일 */
-        .container {
-            width: 100%;
-            max-width: 680px;
-            background: #ffffff;
-            padding: 24px 32px;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-            text-align: center;
-        }
-
-        /* 헤더 스타일 */
-        header h1 {
-            font-size: 2rem;
-            color: #1877f2;
-            margin-bottom: 24px;
-        }
-
-        /* 탭 버튼 스타일 */
-        .tab-buttons {
-            display: flex;
-            border-bottom: 1px solid #dddfe2;
-            margin-bottom: 24px;
-        }
-
-        .tab-button {
-            flex: 1;
-            padding: 14px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            color: #606770;
-            border-bottom: 3px solid transparent;
-            transition: color 0.2s, border-color 0.2s;
-        }
-
-        .tab-button:hover {
-            background-color: #f0f2f5;
-        }
-
-        .tab-button.active {
-            color: #1877f2;
-            border-bottom-color: #1877f2;
-        }
-
-        /* 뷰(화면) 전환 스타일 */
-        .view {
-            display: none;
-        }
-
-        .view.active {
-            display: block;
-        }
-
-        /* 입력 요소 스타일 */
-        textarea, input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 12px;
-            border: 1px solid #dddfe2;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 1rem;
-            font-family: 'Noto Sans KR', sans-serif;
-        }
-
-        textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-
-        /* 버튼 스타일 */
-        .button-group {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .action-button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(45deg, #1877f2, #3b5998);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            flex-grow: 1;
-        }
-
-        .action-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        }
-        
-        .refresh-button {
-            padding: 14px 20px;
-            background-color: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .refresh-button:hover {
-            background-color: #5a6268;
-        }
-
-        .secondary-button {
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745; /* 초록색으로 변경 */
-            color: white; /* 흰색 글자로 변경 */
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .secondary-button:hover {
-            background-color: #218838; /* 더 진한 초록색으로 변경 */
-        }
-
-        /* 결과 표시 영역 스타일 */
-        .result-box {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f0f2f5;
-            border-radius: 8px;
-            min-height: 24px;
-            font-size: 1.1rem;
-            text-align: left;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.6;
-        }
-        
-        /* 로딩 스피너 스타일 */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #1877f2;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Modal (팝업) 스타일 */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.5);
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px 30px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 600px;
-            border-radius: 12px;
-            position: relative;
-            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-        }
-
-        .close-button {
-            color: #aaa;
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .close-button:hover,
-        .close-button:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen py-8">
 
-    <div class="container">
-        <header>
-            <h1>⚾ NPB 선수 이름 번역기</h1>
-        </header>
+    <div class="w-full max-w-2xl mx-auto p-4">
+        <div class="bg-white rounded-2xl card-shadow overflow-hidden">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-semibold text-blue-600">일본 야구선수 이름 번역기</h2>
+                    <p class="text-gray-500 mt-2">Translate Japanese player names to their Korean readings.</p>
+                </div>
 
-        <div class="tab-buttons">
-            <button class="tab-button active" onclick="switchView('translate')">번역하기</button>
-            <button class="tab-button" onclick="switchView('add')">선수 추가</button>
-        </div>
+                <!-- Translator Input Section -->
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                             <label for="japanese-name" class="block text-sm font-medium text-gray-700">Japanese Name (日本語)</label>
+                             <button id="translate-multiple-btn" class="text-sm text-blue-600 hover:underline">Translate Multiple Players</button>
+                        </div>
+                        <input type="text" id="japanese-name" placeholder="例) 大谷 翔平 or ケイ" class="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                    </div>
 
-        <!-- 번역하기 뷰 -->
-        <div id="translate-view" class="view active">
-            <textarea id="japanese-input" placeholder="번역할 선수들의 일본어 이름을 한 줄에 한 명씩 입력하세요..."></textarea>
-            <div class="button-group">
-                <button class="action-button" onclick="translateText()">번역하기</button>
-                <button class="refresh-button" onclick="refreshTranslationView()">새로고침</button>
+                    <div>
+                        <label for="korean-name" class="block text-sm font-medium text-gray-700 mb-1">Korean Name (韓国語)</label>
+                        <div id="korean-name" class="w-full px-4 py-3 bg-gray-100 rounded-lg border border-gray-200 min-h-[50px] flex flex-col justify-center">
+                            <span class="text-gray-500">번역 결과...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="loader" id="translate-loader"></div>
-            <div id="translation-result" class="result-box">번역 결과가 여기에 표시됩니다.</div>
-        </div>
 
-        <!-- 선수 추가 뷰 -->
-        <div id="add-view" class="view">
-            <input type="text" id="add-japanese-single" placeholder="일본어 이름 (예: 大谷 翔平)">
-            <input type="text" id="add-korean-single" placeholder="한국어 이름 (예: 오타니 쇼헤이)">
-            <button class="action-button" onclick="addSingleTranslation()">선수 추가</button>
-            <div id="add-result" class="result-box"></div>
-            <hr style="margin: 20px 0;">
-            <button class="secondary-button" onclick="openModal()">여러 선수 한번에 추가하기</button>
+            <!-- Data List Section -->
+            <div class="bg-gray-50 p-6 border-t border-gray-200">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold text-gray-700">Available Names in Database</h3>
+                    <div class="flex space-x-2">
+                        <button id="add-player-btn" class="bg-green-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition">
+                            Add Player
+                        </button>
+                        <button id="download-btn" class="bg-purple-500 text-white text-sm font-bold py-2 px-4 rounded-lg hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition">
+                            Download
+                        </button>
+                    </div>
+                </div>
+                <div id="name-list" class="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 text-sm text-gray-600 max-h-48 overflow-y-auto">
+                    <!-- Names will be dynamically inserted here -->
+                </div>
+            </div>
+        </div>
+        <footer class="text-center mt-6 text-xs text-gray-400">
+            <p>Player database is shared and updated in real-time.</p>
+        </footer>
+    </div>
+
+    <!-- Add Player Modal -->
+    <div id="add-player-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-3xl">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Add Multiple Players</h2>
+            <p class="text-gray-600 mb-6">Paste Japanese names in the left box and corresponding Korean names in the right box. Ensure each name is on a new line and the lists match.</p>
+            
+            <!-- Manual Entry Section -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Japanese Input -->
+                <div>
+                    <label for="new-japanese-names" class="block text-sm font-medium text-gray-700 mb-1">Japanese Names</label>
+                    <textarea id="new-japanese-names" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="田中 将大&#10;菅野 智之"></textarea>
+                </div>
+                <!-- Korean Input -->
+                <div>
+                    <label for="new-korean-names" class="block text-sm font-medium text-gray-700 mb-1">Korean Names</label>
+                    <textarea id="new-korean-names" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="다나카 마사히로&#10;스가노 토모유키"></textarea>
+                </div>
+            </div>
+            <p id="modal-error" class="text-red-500 text-sm mt-4 hidden">Error message here.</p>
+            <div class="mt-8 flex justify-end space-x-4">
+                <button id="cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Cancel</button>
+                <button id="save-player-btn" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Save Players</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Translate Multiple Modal -->
+    <div id="translate-multiple-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-3xl">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Translate Multiple Players</h2>
+            <p class="text-gray-600 mb-6">Paste a list of Japanese names below (one name per line).</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Input Area -->
+                <div class="flex flex-col">
+                    <label for="multiple-jpn-input" class="block text-sm font-medium text-gray-700 mb-1">Japanese Names</label>
+                    <textarea id="multiple-jpn-input" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="大谷 翔平&#10;山本 由伸&#10;ケイ"></textarea>
+                </div>
+                <!-- Output Area -->
+                <div class="flex flex-col">
+                     <label class="block text-sm font-medium text-gray-700 mb-1">Translation Results</label>
+                    <div id="multiple-results-output" class="w-full p-3 bg-gray-100 rounded-md border border-gray-200 h-full min-h-[200px] overflow-y-auto">
+                        <span class="text-gray-400">Results will appear here...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end">
+                <button id="close-multiple-modal-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Close</button>
+            </div>
         </div>
     </div>
 
-    <!-- 여러 선수 추가 팝업 (Modal) -->
-    <div id="multiple-add-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="closeModal()">&times;</span>
-            <h2 style="text-align: center;">여러 선수 추가</h2>
-            <p style="text-align: center; color: #606770;">아래 형식으로 여러 선수를 추가할 수 있습니다. (한 줄에 한 명)</p>
-            <textarea id="add-multiple-input" placeholder="일본어이름1,한국어이름1&#10;大谷 翔平,오타니 쇼헤이&#10;山本 由伸,야마모토 요시노부"></textarea>
-            <button class="action-button" onclick="addMultipleTranslations()">추가하기</button>
-            <div id="add-multiple-result" class="result-box"></div>
-        </div>
-    </div>
 
-
-    <!-- Firebase SDK 추가 -->
     <script type="module">
-        // Firebase 버전 9 모듈식 SDK 임포트
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        import { getFirestore, collection, query, where, getDocs, doc, serverTimestamp, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase 설정 ---
-        const firebaseConfig = {
-          apiKey: "AIzaSyDaATI_WkM0byU3t21vtetJjF2q-qmlRRw",
-          authDomain: "npbtokorv2.firebaseapp.com",
-          projectId: "npbtokorv2",
-          storageBucket: "npbtokorv2.firebasestorage.app",
-          messagingSenderId: "881007768515",
-          appId: "1:881007768515:web:04da0b8e40747cf92b8376",
-          measurementId: "G-2F7Z102KX6"
-        };
+        document.addEventListener('DOMContentLoaded', async () => {
+            // --- FIREBASE SETUP ---
+            let db, auth;
+            let appId;
+            let firebaseConfig;
 
-        // --- 설정 확인 및 초기화 ---
-        if (!firebaseConfig.projectId || firebaseConfig.projectId === "your-project-id") {
-            const container = document.querySelector('.container');
-            container.innerHTML = `<div style="padding: 20px; background-color: #ffebee; border: 1px solid #c62828; border-radius: 8px; color: #c62828; text-align: left;"><h2 style="margin-top: 0;">🔥 Firebase 설정 오류 🔥</h2><p>프로그램을 실행하려면 Firebase 설정이 필요합니다.</p><p>HTML 코드의 <b>firebaseConfig</b> 객체를 당신의 Firebase 프로젝트 설정 값으로 교체해주세요.</p></div>`;
-        } else {
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-            const translationsCol = collection(db, "translations");
-
-            window.switchView = (viewName) => {
-                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-                document.getElementById(`${viewName}-view`).classList.add('active');
-                document.querySelector(`button[onclick="switchView('${viewName}')"]`).classList.add('active');
-            };
-
-            const showLoader = (loaderId, show) => {
-                document.getElementById(loaderId).style.display = show ? 'block' : 'none';
-            };
-
-            // Modal 제어 함수
-            const modal = document.getElementById('multiple-add-modal');
-            window.openModal = () => { modal.style.display = 'block'; };
-            window.closeModal = () => { modal.style.display = 'none'; };
-            window.onclick = (event) => {
-                if (event.target == modal) {
-                    modal.style.display = 'none';
-                }
-            };
-            
-            // 번역 뷰 초기화 함수
-            window.refreshTranslationView = () => {
-                const japaneseInput = document.getElementById('japanese-input');
-                const resultDiv = document.getElementById('translation-result');
-                japaneseInput.value = '';
-                resultDiv.innerText = '번역 결과가 여기에 표시됩니다.';
-                resultDiv.style.color = '#606770';
-            };
-
-            // 여러 선수 번역 기능 함수
-            window.translateText = async () => {
-                const japaneseInput = document.getElementById('japanese-input').value.trim();
-                const resultDiv = document.getElementById('translation-result');
-                
-                if (!japaneseInput) {
-                    resultDiv.innerText = '번역할 내용을 입력해주세요.';
-                    resultDiv.style.color = 'red';
-                    return;
-                }
-
-                showLoader('translate-loader', true);
-                resultDiv.style.display = 'none';
-
-                const names = japaneseInput.split('\n').map(name => name.trim()).filter(name => name);
-                const resultsMap = new Map();
-                names.forEach(name => resultsMap.set(name, '(찾을 수 없음)'));
-
-                try {
-                    // Firestore 'in' 쿼리 제한(10)에 맞춰 10개씩 나눠서 처리
-                    for (let i = 0; i < names.length; i += 10) {
-                        const chunk = names.slice(i, i + 10);
-                        if (chunk.length > 0) {
-                            const q = query(translationsCol, where("japanese", "in", chunk));
-                            const querySnapshot = await getDocs(q);
-                            querySnapshot.forEach(doc => {
-                                const data = doc.data();
-                                resultsMap.set(data.japanese, data.korean);
-                            });
-                        }
-                    }
-
-                    const results = names.map(name => resultsMap.get(name));
-                    resultDiv.innerText = results.join('\n');
-                    resultDiv.style.color = '#2c3e50';
-
-                } catch (error) {
-                    console.error("번역 중 오류 발생: ", error);
-                    resultDiv.innerText = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-                    resultDiv.style.color = 'red';
-                } finally {
-                    showLoader('translate-loader', false);
-                    resultDiv.style.display = 'block';
-                }
-            };
-            
-            // 단일 선수 추가 함수
-            window.addSingleTranslation = async () => {
-                const japanese = document.getElementById('add-japanese-single').value.trim();
-                const korean = document.getElementById('add-korean-single').value.trim();
-                const resultDiv = document.getElementById('add-result');
-
-                if (!japanese || !korean) {
-                    resultDiv.innerText = '일본어와 한국어 이름을 모두 입력해주세요.';
-                    resultDiv.style.color = 'red';
-                    return;
+            try {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                } else {
+                    // ** FOR DEPLOYMENT (e.g., GitHub Pages) **
+                    // The user's actual Firebase configuration has been inserted here.
+                    firebaseConfig = {
+                        apiKey: "AIzaSyBPI7gI6X2riVH7KUhz5vaiNnjApTejCvQ",
+                        authDomain: "npbtokor.firebaseapp.com",
+                        projectId: "npbtokor",
+                        storageBucket: "npbtokor.firebasestorage.app",
+                        messagingSenderId: "471601639236",
+                        appId: "1:471601639236:web:faf72dc2e7d98ae928f111",
+                        measurementId: "G-R1H8NBQ6LP"
+                    };
+                    appId = firebaseConfig.appId;
                 }
                 
-                try {
-                    const q = query(translationsCol, where("japanese", "==", japanese));
-                    const querySnapshot = await getDocs(q);
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
 
-                    if (!querySnapshot.empty) {
-                        resultDiv.innerText = '이미 등록된 선수입니다.';
-                        resultDiv.style.color = '#f39c12';
-                        return;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                loadPlayers();
+
+            } catch (e) {
+                console.error("Firebase initialization failed:", e);
+                alert("Could not connect to the database. Please check the console for errors and ensure your Firebase configuration is correct in the code for deployment.");
+                return;
+            }
+
+            // --- DATA SOURCE ---
+            const playerNames = {}; 
+
+            // --- DOM ELEMENTS ---
+            const japaneseInput = document.getElementById('japanese-name');
+            const koreanOutput = document.getElementById('korean-name');
+            const nameListContainer = document.getElementById('name-list');
+            const addPlayerBtn = document.getElementById('add-player-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const addPlayerModal = document.getElementById('add-player-modal');
+            const cancelBtn = document.getElementById('cancel-btn');
+            const savePlayerBtn = document.getElementById('save-player-btn');
+            const newJapaneseNamesInput = document.getElementById('new-japanese-names');
+            const newKoreanNamesInput = document.getElementById('new-korean-names');
+            const modalError = document.getElementById('modal-error');
+            const translateMultipleBtn = document.getElementById('translate-multiple-btn');
+            const translateMultipleModal = document.getElementById('translate-multiple-modal');
+            const closeMultipleModalBtn = document.getElementById('close-multiple-modal-btn');
+            const multipleJpnInput = document.getElementById('multiple-jpn-input');
+            const multipleResultsOutput = document.getElementById('multiple-results-output');
+
+            // --- FUNCTIONS ---
+
+            function getCollectionPath() {
+                 const currentAppId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.appId;
+                return `artifacts/${currentAppId}/public/data/players`;
+            }
+
+            function loadPlayers() {
+                const playersCollectionRef = collection(db, getCollectionPath());
+                
+                onSnapshot(playersCollectionRef, (snapshot) => {
+                    for (const key in playerNames) {
+                        delete playerNames[key];
                     }
-
-                    await addDoc(translationsCol, {
-                        japanese: japanese,
-                        korean: korean,
-                        createdAt: serverTimestamp()
+                    snapshot.docs.forEach(doc => {
+                        const playerData = doc.data();
+                        playerNames[playerData.jpn] = playerData.kor;
                     });
+                    displayAvailableNames();
+                });
+            }
 
-                    resultDiv.innerText = `✅ ${korean}(${japanese}) 선수가 성공적으로 추가되었습니다!`;
-                    resultDiv.style.color = '#2ecc71';
-                    document.getElementById('add-japanese-single').value = '';
-                    document.getElementById('add-korean-single').value = '';
-
-                } catch (error) {
-                    console.error("단일 선수 추가 중 오류 발생: ", error);
-                    resultDiv.innerText = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-                    resultDiv.style.color = 'red';
-                }
-            };
-
-            // 여러 선수 추가 함수 (팝업용)
-            window.addMultipleTranslations = async () => {
-                const multipleInput = document.getElementById('add-multiple-input').value.trim();
-                const resultDiv = document.getElementById('add-multiple-result');
-
-                if (!multipleInput) {
-                    resultDiv.innerText = '추가할 선수 정보를 입력해주세요.';
-                    resultDiv.style.color = 'red';
+            function translateName() {
+                const inputName = japaneseInput.value.trim();
+                
+                if (inputName === "") {
+                    koreanOutput.innerHTML = `<span class="text-gray-500">번역 결과...</span>`;
+                    koreanOutput.classList.add('justify-center');
                     return;
                 }
 
-                const lines = multipleInput.split('\n').filter(line => line.trim() !== '');
-                const playersToAdd = [];
-                const invalidLines = [];
-
-                for (const line of lines) {
-                    const parts = line.split(',').map(p => p.trim());
-                    if (parts.length === 2 && parts[0] && parts[1]) {
-                        playersToAdd.push({ japanese: parts[0], korean: parts[1] });
-                    } else {
-                        invalidLines.push(line);
+                const foundPlayers = [];
+                
+                for (const jpnName in playerNames) {
+                    if (jpnName.includes(inputName)) {
+                        foundPlayers.push({ jpn: jpnName, kor: playerNames[jpnName] });
                     }
                 }
 
-                if (playersToAdd.length === 0) {
-                    resultDiv.innerText = '올바른 형식(일본어이름,한국어이름)으로 입력해주세요.';
-                    resultDiv.style.color = 'red';
-                    return;
-                }
+                foundPlayers.sort((a, b) => {
+                    if (a.jpn === inputName) return -1;
+                    if (b.jpn === inputName) return 1;
+                    if (a.jpn.startsWith(inputName) && !b.jpn.startsWith(inputName)) return -1;
+                    if (!a.jpn.startsWith(inputName) && b.jpn.startsWith(inputName)) return 1;
+                    return a.jpn.localeCompare(b.jpn, 'ja');
+                });
 
+                if (foundPlayers.length > 0) {
+                    koreanOutput.classList.remove('justify-center');
+                    const resultsHTML = foundPlayers.map(player => {
+                        return `<div class="w-full flex justify-between items-center text-sm py-2 border-b border-gray-100 last:border-b-0">
+                                    <span class="text-gray-700 pr-4">${player.jpn}</span>
+                                    <span class="font-bold text-blue-800 text-right">${player.kor}</span>
+                                </div>`;
+                    }).join('');
+                    koreanOutput.innerHTML = resultsHTML;
+
+                } else {
+                    koreanOutput.innerHTML = `<span class="text-red-600">Name not found in the database.</span>`;
+                    koreanOutput.classList.add('justify-center');
+                }
+            }
+
+            function displayAvailableNames() {
+                nameListContainer.innerHTML = ''; // Clear existing list
+                const sortedNames = Object.keys(playerNames).sort((a, b) => a.localeCompare(b, 'ja'));
+                for (const name of sortedNames) {
+                    const nameElement = document.createElement('div');
+                    nameElement.textContent = name;
+                    nameListContainer.appendChild(nameElement);
+                }
+            }
+
+            function showModal(modal) {
+                modal.classList.remove('hidden');
+            }
+
+            function hideModal(modal) {
+                modal.classList.add('hidden');
+            }
+            
+            function clearAndHideAddPlayerModal() {
+                 hideModal(addPlayerModal);
+                 newJapaneseNamesInput.value = '';
+                 newKoreanNamesInput.value = '';
+                 modalError.classList.add('hidden');
+            }
+            
+            function clearAndHideMultiTranslateModal() {
+                 hideModal(translateMultipleModal);
+                 multipleJpnInput.value = '';
+                 multipleResultsOutput.innerHTML = '<span class="text-gray-400">Results will appear here...</span>';
+            }
+
+            async function savePlayersToDB(playersToAdd) {
+                const playersCollectionRef = collection(db, getCollectionPath());
+                const promises = playersToAdd.map(player => addDoc(playersCollectionRef, player));
+                
                 try {
-                    let addedCount = 0;
-                    let duplicateCount = 0;
-                    
-                    const allJapaneseNames = playersToAdd.map(p => p.japanese);
-                    const existingNames = new Set();
-                    
-                    // Firestore 'in' 쿼리 제한(10)에 맞춰 10개씩 나눠서 처리
-                    for (let i = 0; i < allJapaneseNames.length; i += 10) {
-                        const chunk = allJapaneseNames.slice(i, i + 10);
-                        if (chunk.length > 0) {
-                            const q = query(translationsCol, where("japanese", "in", chunk));
-                            const querySnapshot = await getDocs(q);
-                            querySnapshot.forEach(doc => {
-                                existingNames.add(doc.data().japanese);
-                            });
-                        }
-                    }
-                    
-                    const batch = writeBatch(db);
-                    for (const player of playersToAdd) {
-                        if (existingNames.has(player.japanese)) {
-                            duplicateCount++;
-                        } else {
-                            const newDocRef = doc(collection(db, "translations"));
-                            batch.set(newDocRef, {
-                                japanese: player.japanese,
-                                korean: player.korean,
-                                createdAt: serverTimestamp()
-                            });
-                            addedCount++;
-                        }
-                    }
-
-                    if (addedCount > 0) {
-                        await batch.commit();
-                    }
-
-                    let resultMessage = `✅ ${addedCount}명의 선수가 성공적으로 추가되었습니다.`;
-                    if (duplicateCount > 0) {
-                        resultMessage += `\n⚠️ ${duplicateCount}명은 이미 등록된 선수입니다.`;
-                    }
-                    if (invalidLines.length > 0) {
-                        resultMessage += `\n❌ ${invalidLines.length}개의 줄이 형식에 맞지 않아 제외되었습니다.`;
-                    }
-
-                    resultDiv.innerText = resultMessage;
-                    resultDiv.style.color = '#2c3e50';
-                    document.getElementById('add-multiple-input').value = '';
-
+                    await Promise.all(promises);
                 } catch (error) {
-                    console.error("데이터 추가 중 오류 발생: ", error);
-                    resultDiv.innerText = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-                    resultDiv.style.color = 'red';
+                    console.error("Error adding players to database: ", error);
+                    modalError.textContent = "Could not save players to the database.";
+                    modalError.classList.remove('hidden');
                 }
-            };
-        }
+            }
+
+            async function saveNewPlayers() {
+                modalError.classList.add('hidden');
+                const jpnNamesList = newJapaneseNamesInput.value.trim().split('\n');
+                const korNamesList = newKoreanNamesInput.value.trim().split('\n');
+
+                const filteredJpnNames = jpnNamesList.filter(name => name.trim() !== '');
+                const filteredKorNames = korNamesList.filter(name => name.trim() !== '');
+
+                if (filteredJpnNames.length === 0 && filteredKorNames.length === 0) {
+                    clearAndHideAddPlayerModal();
+                    return;
+                }
+
+                if (filteredJpnNames.length !== filteredKorNames.length) {
+                    modalError.textContent = "The number of Japanese and Korean names must match.";
+                    modalError.classList.remove('hidden');
+                    return;
+                }
+
+                const playersToAdd = [];
+                for (let i = 0; i < filteredJpnNames.length; i++) {
+                    const jpnName = filteredJpnNames[i].trim();
+                    const korName = filteredKorNames[i].trim();
+
+                    if (jpnName && korName) {
+                        playersToAdd.push({ jpn: jpnName, kor: korName });
+                    }
+                }
+
+                if (playersToAdd.length > 0) {
+                    await savePlayersToDB(playersToAdd);
+                }
+                
+                clearAndHideAddPlayerModal();
+            }
+            
+            function downloadDatabase() {
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                csvContent += "Japanese Name,Korean Name\n";
+
+                const sortedKeys = Object.keys(playerNames).sort((a, b) => a.localeCompare(b, 'ja'));
+
+                sortedKeys.forEach(jpnName => {
+                    const korName = playerNames[jpnName];
+                    const row = `"${jpnName}","${korName}"`;
+                    csvContent += row + "\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "player_database.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            function translateMultipleNames() {
+                const namesToTranslate = multipleJpnInput.value.trim().split('\n').filter(name => name.trim() !== '');
+                multipleResultsOutput.innerHTML = '';
+
+                if (namesToTranslate.length === 0) {
+                    multipleResultsOutput.innerHTML = '<span class="text-gray-400">Results will appear here...</span>';
+                    return;
+                }
+
+                const resultsFragment = document.createDocumentFragment();
+                let anyMatchesFound = false;
+
+                namesToTranslate.forEach((searchTerm, index) => {
+                    const trimmedSearchTerm = searchTerm.trim();
+                    const foundPlayers = [];
+                    for (const jpnName in playerNames) {
+                        if (jpnName.includes(trimmedSearchTerm)) {
+                            foundPlayers.push({ jpn: jpnName, kor: playerNames[jpnName] });
+                        }
+                    }
+
+                    foundPlayers.sort((a, b) => {
+                        if (a.jpn === trimmedSearchTerm) return -1;
+                        if (b.jpn === trimmedSearchTerm) return 1;
+                        if (a.jpn.startsWith(trimmedSearchTerm) && !b.jpn.startsWith(trimmedSearchTerm)) return -1;
+                        if (!a.jpn.startsWith(trimmedSearchTerm) && b.jpn.startsWith(trimmedSearchTerm)) return 1;
+                        return a.jpn.localeCompare(b.jpn, 'ja');
+                    });
+                    
+                    if (index > 0) {
+                        const separator = document.createElement('hr');
+                        separator.className = 'my-3 border-gray-200';
+                        resultsFragment.appendChild(separator);
+                    }
+
+                    if(foundPlayers.length > 0) {
+                        anyMatchesFound = true;
+                        foundPlayers.forEach(player => {
+                            const resultEl = document.createElement('div');
+                            resultEl.className = 'flex justify-between items-center text-sm mb-1';
+                            
+                            const jpnSpan = document.createElement('span');
+                            jpnSpan.textContent = player.jpn;
+                            jpnSpan.className = 'text-gray-700 pr-2';
+                            
+                            const korSpan = document.createElement('span');
+                            korSpan.textContent = player.kor;
+                            korSpan.className = 'font-semibold text-blue-700 text-right';
+                            
+                            resultEl.appendChild(jpnSpan);
+                            resultEl.appendChild(korSpan);
+                            resultsFragment.appendChild(resultEl);
+                        });
+                    }
+                });
+
+                if (!anyMatchesFound) {
+                     multipleResultsOutput.innerHTML = '<span class="text-red-500">No matches found for any of the entered names.</span>';
+                } else {
+                    multipleResultsOutput.appendChild(resultsFragment);
+                }
+            }
+
+            // --- EVENT LISTENERS ---
+            japaneseInput.addEventListener('input', translateName);
+            addPlayerBtn.addEventListener('click', () => showModal(addPlayerModal));
+            downloadBtn.addEventListener('click', downloadDatabase);
+            cancelBtn.addEventListener('click', clearAndHideAddPlayerModal);
+            savePlayerBtn.addEventListener('click', saveNewPlayers);
+            
+            translateMultipleBtn.addEventListener('click', () => showModal(translateMultipleModal));
+            closeMultipleModalBtn.addEventListener('click', clearAndHideMultiTranslateModal);
+            multipleJpnInput.addEventListener('input', translateMultipleNames);
+            
+            addPlayerModal.addEventListener('click', (event) => {
+                if (event.target === addPlayerModal) {
+                    clearAndHideAddPlayerModal();
+                }
+            });
+            translateMultipleModal.addEventListener('click', (event) => {
+                if (event.target === translateMultipleModal) {
+                    clearAndHideMultiTranslateModal();
+                }
+            });
+        });
     </script>
+
 </body>
 </html>
