@@ -32,12 +32,12 @@
                              <label for="japanese-name" class="block text-sm font-medium text-gray-700">Japanese Name (日本語)</label>
                              <button id="translate-multiple-btn" class="text-sm text-blue-600 hover:underline">Translate Multiple Players</button>
                         </div>
-                        <input type="text" id="japanese-name" placeholder="例) 大谷 翔平" class="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                        <input type="text" id="japanese-name" placeholder="例) 大谷 翔平 or ケイ" class="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
                     </div>
 
                     <div>
                         <label for="korean-name" class="block text-sm font-medium text-gray-700 mb-1">Korean Name (韓国語)</label>
-                        <div id="korean-name" class="w-full px-4 py-3 bg-gray-100 rounded-lg border border-gray-200 min-h-[50px] flex items-center">
+                        <div id="korean-name" class="w-full px-4 py-3 bg-gray-100 rounded-lg border border-gray-200 min-h-[50px] flex flex-col justify-center">
                             <span class="text-gray-500">번역 결과...</span>
                         </div>
                     </div>
@@ -101,7 +101,7 @@
                 <!-- Input Area -->
                 <div class="flex flex-col">
                     <label for="multiple-jpn-input" class="block text-sm font-medium text-gray-700 mb-1">Japanese Names</label>
-                    <textarea id="multiple-jpn-input" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="大谷 翔平&#10;山本 由伸&#10;佐々木 朗希"></textarea>
+                    <textarea id="multiple-jpn-input" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="大谷 翔平&#10;山本 由伸&#10;ケイ"></textarea>
                 </div>
                 <!-- Output Area -->
                 <div class="flex flex-col">
@@ -475,15 +475,43 @@
 
             function translateName() {
                 const inputName = japaneseInput.value.trim();
+                
                 if (inputName === "") {
                     koreanOutput.innerHTML = `<span class="text-gray-500">번역 결과...</span>`;
+                    koreanOutput.classList.add('justify-center');
                     return;
                 }
-                const translatedName = playerNames[inputName];
-                if (translatedName) {
-                    koreanOutput.innerHTML = `<span class="font-bold text-lg text-blue-800">${translatedName}</span>`;
+
+                const foundPlayers = [];
+                
+                for (const jpnName in playerNames) {
+                    if (jpnName.includes(inputName)) {
+                        foundPlayers.push({ jpn: jpnName, kor: playerNames[jpnName] });
+                    }
+                }
+
+                // Sort for relevance: exact match > starts with > includes
+                foundPlayers.sort((a, b) => {
+                    if (a.jpn === inputName) return -1;
+                    if (b.jpn === inputName) return 1;
+                    if (a.jpn.startsWith(inputName) && !b.jpn.startsWith(inputName)) return -1;
+                    if (!a.jpn.startsWith(inputName) && b.jpn.startsWith(inputName)) return 1;
+                    return a.jpn.localeCompare(b.jpn, 'ja');
+                });
+
+                if (foundPlayers.length > 0) {
+                    koreanOutput.classList.remove('justify-center');
+                    const resultsHTML = foundPlayers.map(player => {
+                        return `<div class="w-full flex justify-between items-center text-sm py-2 border-b border-gray-100 last:border-b-0">
+                                    <span class="text-gray-700 pr-4">${player.jpn}</span>
+                                    <span class="font-bold text-blue-800 text-right">${player.kor}</span>
+                                </div>`;
+                    }).join('');
+                    koreanOutput.innerHTML = resultsHTML;
+
                 } else {
                     koreanOutput.innerHTML = `<span class="text-red-600">Name not found in the database.</span>`;
+                    koreanOutput.classList.add('justify-center');
                 }
             }
 
@@ -524,7 +552,6 @@
                 const jpnNamesList = newJapaneseNamesInput.value.trim().split('\n');
                 const korNamesList = newKoreanNamesInput.value.trim().split('\n');
 
-                // Filter out empty lines that might result from trailing newlines
                 const filteredJpnNames = jpnNamesList.filter(name => name.trim() !== '');
                 const filteredKorNames = korNamesList.filter(name => name.trim() !== '');
 
@@ -580,34 +607,67 @@
             }
             
             function translateMultipleNames() {
-                const namesToTranslate = multipleJpnInput.value.trim().split('\n');
+                const namesToTranslate = multipleJpnInput.value.trim().split('\n').filter(name => name.trim() !== '');
                 multipleResultsOutput.innerHTML = ''; // Clear previous results
 
-                if (namesToTranslate.length === 1 && namesToTranslate[0] === '') {
+                if (namesToTranslate.length === 0) {
                     multipleResultsOutput.innerHTML = '<span class="text-gray-400">Results will appear here...</span>';
                     return;
                 }
 
                 const resultsFragment = document.createDocumentFragment();
+                let anyMatchesFound = false;
 
-                namesToTranslate.forEach(jpnName => {
-                    const trimmedJpnName = jpnName.trim();
-                    if(trimmedJpnName){
-                        const korName = playerNames[trimmedJpnName];
-                        const resultEl = document.createElement('div');
-                        
-                        if (korName) {
-                            resultEl.textContent = korName;
-                            resultEl.className = 'text-blue-700 font-semibold text-sm mb-1';
-                        } else {
-                            resultEl.textContent = 'Not Found';
-                            resultEl.className = 'text-red-500 font-semibold text-sm mb-1';
+                namesToTranslate.forEach((searchTerm, index) => {
+                    const trimmedSearchTerm = searchTerm.trim();
+                    
+                    const foundPlayers = [];
+                    for (const jpnName in playerNames) {
+                        if (jpnName.includes(trimmedSearchTerm)) {
+                            foundPlayers.push({ jpn: jpnName, kor: playerNames[jpnName] });
                         }
-                        
-                        resultsFragment.appendChild(resultEl);
+                    }
+
+                    foundPlayers.sort((a, b) => {
+                        if (a.jpn === trimmedSearchTerm) return -1;
+                        if (b.jpn === trimmedSearchTerm) return 1;
+                        if (a.jpn.startsWith(trimmedSearchTerm) && !b.jpn.startsWith(trimmedSearchTerm)) return -1;
+                        if (!a.jpn.startsWith(trimmedSearchTerm) && b.jpn.startsWith(trimmedSearchTerm)) return 1;
+                        return a.jpn.localeCompare(b.jpn, 'ja');
+                    });
+                    
+                    if (index > 0) {
+                        const separator = document.createElement('hr');
+                        separator.className = 'my-3 border-gray-200';
+                        resultsFragment.appendChild(separator);
+                    }
+
+                    if(foundPlayers.length > 0) {
+                        anyMatchesFound = true;
+                        foundPlayers.forEach(player => {
+                            const resultEl = document.createElement('div');
+                            resultEl.className = 'flex justify-between items-center text-sm mb-1';
+                            
+                            const jpnSpan = document.createElement('span');
+                            jpnSpan.textContent = player.jpn;
+                            jpnSpan.className = 'text-gray-700 pr-2';
+                            
+                            const korSpan = document.createElement('span');
+                            korSpan.textContent = player.kor;
+                            korSpan.className = 'font-semibold text-blue-700 text-right';
+                            
+                            resultEl.appendChild(jpnSpan);
+                            resultEl.appendChild(korSpan);
+                            resultsFragment.appendChild(resultEl);
+                        });
                     }
                 });
-                multipleResultsOutput.appendChild(resultsFragment);
+
+                if (!anyMatchesFound) {
+                     multipleResultsOutput.innerHTML = '<span class="text-red-500">No matches found for any of the entered names.</span>';
+                } else {
+                    multipleResultsOutput.appendChild(resultsFragment);
+                }
             }
 
             // --- EVENT LISTENERS ---
