@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Japanese to Korean Baseball Name Translator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -71,17 +72,28 @@
     <div id="add-player-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-3xl">
             <h2 class="text-2xl font-bold mb-4 text-gray-800">Add Multiple Players</h2>
-            <p class="text-gray-600 mb-6">Paste Japanese names in the left box and corresponding Korean names in the right box. Ensure each name is on a new line and the lists match.</p>
+            
+            <!-- File Upload Section -->
+            <div class="mb-6 border-b pb-6">
+                <p class="text-gray-600 mb-3 text-sm">Upload a .csv file. Column A should be Japanese names, Column B should be Korean names.</p>
+                <input type="file" id="player-file-input" class="hidden" accept=".csv">
+                <label for="player-file-input" class="cursor-pointer inline-block bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-600 transition">
+                    Choose CSV File
+                </label>
+            </div>
+
+            <!-- Manual Entry Section -->
+            <p class="text-gray-600 mb-4">Or, add manually:</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Japanese Input -->
                 <div>
                     <label for="new-japanese-names" class="block text-sm font-medium text-gray-700 mb-1">Japanese Names</label>
-                    <textarea id="new-japanese-names" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="田中 将大&#10;菅野 智之"></textarea>
+                    <textarea id="new-japanese-names" rows="8" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="田中 将大&#10;菅野 智之"></textarea>
                 </div>
                 <!-- Korean Input -->
                 <div>
                     <label for="new-korean-names" class="block text-sm font-medium text-gray-700 mb-1">Korean Names</label>
-                    <textarea id="new-korean-names" rows="10" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="다나카 마사히로&#10;스가노 토모유키"></textarea>
+                    <textarea id="new-korean-names" rows="8" class="w-full p-3 bg-gray-50 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="다나카 마사히로&#10;스가노 토모유키"></textarea>
                 </div>
             </div>
             <p id="modal-error" class="text-red-500 text-sm mt-4 hidden">Error message here.</p>
@@ -111,9 +123,8 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-8 flex justify-between items-center">
+            <div class="mt-8 flex justify-end">
                 <button id="close-multiple-modal-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition">Close</button>
-                <button id="translate-list-btn" class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition">Translate List</button>
             </div>
         </div>
     </div>
@@ -461,6 +472,7 @@
             const newJapaneseNamesInput = document.getElementById('new-japanese-names');
             const newKoreanNamesInput = document.getElementById('new-korean-names');
             const modalError = document.getElementById('modal-error');
+            const playerFileInput = document.getElementById('player-file-input');
 
             // Multiple Translate Modal Elements
             const translateMultipleBtn = document.getElementById('translate-multiple-btn');
@@ -468,8 +480,6 @@
             const closeMultipleModalBtn = document.getElementById('close-multiple-modal-btn');
             const multipleJpnInput = document.getElementById('multiple-jpn-input');
             const multipleResultsOutput = document.getElementById('multiple-results-output');
-            const translateListBtn = document.getElementById('translate-list-btn');
-
 
             // --- FUNCTIONS ---
 
@@ -538,6 +548,7 @@
                  newJapaneseNamesInput.value = '';
                  newKoreanNamesInput.value = '';
                  modalError.classList.add('hidden');
+                 playerFileInput.value = ''; // Reset file input
             }
             
             function clearAndHideMultiTranslateModal() {
@@ -669,6 +680,36 @@
                     multipleResultsOutput.appendChild(resultsFragment);
                 }
             }
+            
+            function handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                Papa.parse(file, {
+                    encoding: "UTF-8",
+                    complete: function(results) {
+                        let addedCount = 0;
+                        results.data.forEach(row => {
+                            const jpnName = row[0] ? row[0].trim() : '';
+                            const korName = row[1] ? row[1].trim() : '';
+                            if (jpnName && korName) {
+                                playerNames[jpnName] = korName;
+                                addedCount++;
+                            }
+                        });
+                        if(addedCount > 0) {
+                            displayAvailableNames();
+                        }
+                        clearAndHideAddPlayerModal();
+                    },
+                    error: function(error) {
+                        modalError.textContent = "Error parsing CSV file: " + error.message;
+                        modalError.classList.remove('hidden');
+                    }
+                });
+            }
 
             // --- EVENT LISTENERS ---
             japaneseInput.addEventListener('input', translateName);
@@ -676,11 +717,12 @@
             downloadBtn.addEventListener('click', downloadDatabase);
             cancelBtn.addEventListener('click', clearAndHideAddPlayerModal);
             savePlayerBtn.addEventListener('click', saveNewPlayers);
+            playerFileInput.addEventListener('change', handleFileUpload);
             
             // Multiple Translate Listeners
             translateMultipleBtn.addEventListener('click', () => showModal(translateMultipleModal));
             closeMultipleModalBtn.addEventListener('click', clearAndHideMultiTranslateModal);
-            translateListBtn.addEventListener('click', translateMultipleNames);
+            multipleJpnInput.addEventListener('input', translateMultipleNames); // Automatic translation
             
             // Close modals if clicking outside
             addPlayerModal.addEventListener('click', (event) => {
