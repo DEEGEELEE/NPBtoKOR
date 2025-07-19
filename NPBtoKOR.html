@@ -97,6 +97,7 @@
         .button-group {
             display: flex;
             gap: 10px;
+            justify-content: flex-end; /* 새로고침 버튼을 오른쪽으로 정렬 */
         }
         
         .action-button {
@@ -292,7 +293,6 @@
         <div id="translate-view" class="view active">
             <textarea id="japanese-input" placeholder="검색할 선수들의 일본어 이름을 한 줄에 한 명씩 입력하세요..."></textarea>
             <div class="button-group">
-                <button class="action-button" onclick="translateText()">번역하기</button>
                 <button class="refresh-button" onclick="refreshTranslationView()">새로고침</button>
             </div>
             <div class="loader" id="translate-loader"></div>
@@ -410,13 +410,13 @@
             };
 
             // 부분 검색 기능 함수
-            window.translateText = async () => {
+            const translateText = async () => {
                 const japaneseInput = document.getElementById('japanese-input').value.trim();
                 const resultDiv = document.getElementById('translation-result');
                 
                 if (!japaneseInput) {
-                    resultDiv.innerText = '검색할 내용을 입력해주세요.';
-                    resultDiv.style.color = 'red';
+                    resultDiv.innerHTML = '번역 결과가 여기에 표시됩니다.';
+                    resultDiv.style.color = '#606770';
                     return;
                 }
 
@@ -688,6 +688,17 @@
                     resultDiv.style.color = 'red';
                 }
             };
+
+            // --- 자동 번역 설정 ---
+            let debounceTimer;
+            const japaneseInputEl = document.getElementById('japanese-input');
+
+            japaneseInputEl.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    translateText();
+                }, 500); // 0.5초 지연 후 번역 실행
+            });
         }
     </script>
 </body>
