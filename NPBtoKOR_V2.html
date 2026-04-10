@@ -1,0 +1,868 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚾ NPB 선수 이름 번역기</title>
+    <!-- SheetJS 라이브러리 (엑셀 추출용) 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* 기본 스타일 및 폰트 설정 */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f0f2f5;
+            color: #1c1e21;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* 메인 컨테이너 스타일 */
+        .container {
+            width: 100%;
+            max-width: 680px;
+            background: #ffffff;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        /* 헤더 스타일 */
+        header h1 {
+            font-size: 2rem;
+            color: #1877f2;
+            margin-bottom: 24px;
+        }
+
+        /* 탭 및 상단 컨트롤 컨테이너 */
+        .top-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid #dddfe2;
+            margin-bottom: 24px;
+        }
+
+        /* 탭 버튼 스타일 */
+        .tab-buttons {
+            display: flex;
+            flex-grow: 1;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #606770;
+            border-bottom: 3px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .tab-button:hover {
+            background-color: #f0f2f5;
+        }
+
+        .tab-button.active {
+            color: #1877f2;
+            border-bottom-color: #1877f2;
+        }
+
+        /* 엑셀 다운로드 버튼 스타일 */
+        .excel-button {
+            padding: 10px 16px;
+            background-color: #107c41; /* 엑셀 고유의 초록색 */
+            color: white;
+            border: none;
+            border-radius: 6px 6px 0 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 1px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .excel-button:hover {
+            background-color: #0c5e31;
+        }
+
+        /* 뷰(화면) 전환 스타일 */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        /* 입력 요소 스타일 */
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #dddfe2;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        /* 버튼 스타일 */
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .action-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(45deg, #1877f2, #3b5998);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-grow: 1;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        
+        .refresh-button {
+            padding: 14px 20px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .refresh-button:hover {
+            background-color: #5a6268;
+        }
+
+        .secondary-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .secondary-button:hover {
+            background-color: #218838;
+        }
+        
+        .edit-button {
+             background: none;
+             border: 1px solid #6c757d;
+             color: #6c757d;
+             padding: 4px 8px;
+             font-size: 0.8rem;
+             border-radius: 5px;
+             cursor: pointer;
+             margin-left: 10px;
+        }
+
+        /* 결과 표시 영역 스타일 */
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f2f5;
+            border-radius: 8px;
+            min-height: 24px;
+            font-size: 1.0rem;
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+        
+        .result-box hr {
+            border: 0;
+            height: 1px;
+            background-color: #dddfe2;
+            margin: 10px 0;
+        }
+        
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+
+        .result-item > div {
+            display: flex;
+            align-items: center;
+        }
+
+        .japanese-name {
+            color: #606770;
+        }
+
+        .korean-name {
+            color: #1877f2;
+            font-weight: 700;
+            margin-left: 10px;
+        }
+        
+        /* 로딩 스피너 스타일 */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #1877f2;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal (팝업) 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px 30px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+        }
+
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .multiple-add-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .multiple-add-container textarea {
+            flex: 1;
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>⚾ NPB 선수 이름 번역기</h1>
+        </header>
+
+        <div class="top-controls">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="switchView('translate')">번역하기</button>
+                <button class="tab-button" onclick="switchView('add')">선수 추가</button>
+            </div>
+            <!-- 엑셀 추출 버튼 -->
+            <button class="excel-button" onclick="exportToExcel()" id="btn-export">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M5.884 6.68a.5.5 0 1 0-.768.64L7.349 10l-2.233 2.68a.5.5 0 0 0 .768.64L8 10.781l2.116 2.54a.5.5 0 0 0 .768-.641L8.651 10l2.233-2.68a.5.5 0 0 0-.768-.64L8 9.219l-2.116-2.54z"/>
+                    <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/>
+                </svg>
+                엑셀 추출
+            </button>
+        </div>
+        <div id="export-msg" style="text-align: right; color: #e74c3c; font-size: 0.9rem; margin-top: -15px; margin-bottom: 15px; display: none;"></div>
+
+        <!-- 번역하기 뷰 -->
+        <div id="translate-view" class="view active">
+            <textarea id="japanese-input" placeholder="검색할 선수들의 일본어 이름을 한 줄에 한 명씩 입력하세요..."></textarea>
+            <div class="button-group">
+                <button class="refresh-button" onclick="refreshTranslationView()">새로고침</button>
+            </div>
+            <div class="loader" id="translate-loader"></div>
+            <div id="translation-result" class="result-box">번역 결과가 여기에 표시됩니다.</div>
+        </div>
+
+        <!-- 선수 추가 뷰 -->
+        <div id="add-view" class="view">
+            <input type="text" id="add-japanese-single" placeholder="일본어 이름 (예: 大谷 翔平)">
+            <input type="text" id="add-korean-single" placeholder="한국어 이름 (예: 오타니 쇼헤이)">
+            <button class="action-button" onclick="addSingleTranslation()">선수 추가</button>
+            <div id="add-result" class="result-box"></div>
+            <hr style="margin: 20px 0;">
+            <button class="secondary-button" onclick="openModal('multiple-add-modal')">여러 선수 한번에 추가하기</button>
+        </div>
+    </div>
+
+    <!-- 여러 선수 추가 팝업 -->
+    <div id="multiple-add-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('multiple-add-modal')">&times;</span>
+            <h2 style="text-align: center;">여러 선수 추가</h2>
+            <p style="text-align: center; color: #606770;">양쪽 칸에 선수 이름을 한 줄에 한 명씩 순서대로 입력하세요.</p>
+            <div class="multiple-add-container">
+                <textarea id="add-multiple-japanese" placeholder="일본어 이름&#10;大谷 翔平&#10;山本 由伸"></textarea>
+                <textarea id="add-multiple-korean" placeholder="한국어 이름&#10;오타니 쇼헤이&#10;야마모토 요시노부"></textarea>
+            </div>
+            <button class="action-button" onclick="addMultipleTranslations()">추가하기</button>
+            <div id="add-multiple-result" class="result-box"></div>
+        </div>
+    </div>
+    
+    <!-- 선수 정보 수정 팝업 -->
+    <div id="edit-player-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal('edit-player-modal')">&times;</span>
+            <h2 style="text-align: center;">선수 정보 수정</h2>
+            <input type="hidden" id="edit-doc-id">
+            <input type="text" id="edit-japanese-name" placeholder="일본어 이름">
+            <input type="text" id="edit-korean-name" placeholder="한국어 이름">
+            <div class="button-group">
+                <button class="action-button" onclick="saveChanges()">저장</button>
+                <button class="refresh-button" style="background-color: #dc3545;" onclick="deletePlayer()">삭제</button>
+            </div>
+            <div id="edit-result" class="result-box"></div>
+        </div>
+    </div>
+
+    <!-- 알림용 공통 모달 -->
+    <div id="alert-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <h3 id="alert-title" style="margin-top: 0;">알림</h3>
+            <p id="alert-message" style="color: #606770; margin-bottom: 20px;"></p>
+            <button class="action-button" onclick="closeModal('alert-modal')">확인</button>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDK 추가 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs, doc, serverTimestamp, writeBatch, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        // --- Firebase 설정 ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDaATI_WkM0byU3t21vtetJjF2q-qmlRRw",
+          authDomain: "npbtokorv2.firebaseapp.com",
+          projectId: "npbtokorv2",
+          storageBucket: "npbtokorv2.firebasestorage.app",
+          messagingSenderId: "881007768515",
+          appId: "1:881007768515:web:04da0b8e40747cf92b8376",
+          measurementId: "G-2F7Z102KX6"
+        };
+
+        if (!firebaseConfig.projectId || firebaseConfig.projectId === "your-project-id") {
+            const container = document.querySelector('.container');
+            container.innerHTML = `<div style="padding: 20px; background-color: #ffebee; border: 1px solid #c62828; border-radius: 8px; color: #c62828; text-align: left;"><h2 style="margin-top: 0;">🔥 Firebase 설정 오류 🔥</h2><p>프로그램을 실행하려면 Firebase 설정이 필요합니다.</p></div>`;
+        } else {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const translationsCol = collection(db, "translations");
+            let temporaryEditData = {};
+
+            window.switchView = (viewName) => {
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                document.getElementById(`${viewName}-view`).classList.add('active');
+                document.querySelector(`button[onclick="switchView('${viewName}')"]`).classList.add('active');
+            };
+
+            const showLoader = (loaderId, show) => {
+                document.getElementById(loaderId).style.display = show ? 'block' : 'none';
+            };
+
+            window.openModal = (modalId) => { document.getElementById(modalId).style.display = 'block'; };
+            window.closeModal = (modalId) => { document.getElementById(modalId).style.display = 'none'; };
+            window.onclick = (event) => {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            };
+            
+            window.showAlert = (title, message) => {
+                document.getElementById('alert-title').innerText = title;
+                document.getElementById('alert-message').innerText = message;
+                openModal('alert-modal');
+            }
+            
+            window.refreshTranslationView = () => {
+                const japaneseInput = document.getElementById('japanese-input');
+                const resultDiv = document.getElementById('translation-result');
+                japaneseInput.value = '';
+                resultDiv.innerHTML = '번역 결과가 여기에 표시됩니다.';
+                resultDiv.style.color = '#606770';
+            };
+
+            // ====== [핵심 수정됨] 공백 및 특수문자 표준화 로직 ======
+            // 전각 공백(　) 및 탭 등을 모두 일반 반각 공백 하나( )로 통일합니다.
+            const standardizeName = (name) => {
+                if (!name) return "";
+                // 1. normalize('NFKC'): 전각 공백(U+3000)을 포함한 전각 문자를 반각으로 변환
+                // 2. replace(/[\s]+/g, ' '): 여러 번의 띄어쓰기나 줄바꿈을 공백 하나로 통일
+                // 3. trim(): 문자열 앞뒤 공백 제거
+                return name.normalize('NFKC').replace(/[\s]+/g, ' ').trim();
+            };
+
+            const createKeywords = (name) => {
+                const keywords = new Set();
+                const stdName = standardizeName(name); // 예: "中西 聖輝"
+                
+                // 1. 공백이 올바르게 1개만 들어간 표준 이름 추가
+                keywords.add(stdName);
+                
+                // 2. 공백이 아예 없는 형태 추가 (예: "中西聖輝")
+                // 사용자가 띄어쓰기 없이 검색해도 완벽하게 매치되도록 지원
+                const noSpaceName = stdName.replace(/ /g, '');
+                if (noSpaceName !== stdName) {
+                    keywords.add(noSpaceName);
+                }
+                
+                // 3. 띄어쓰기나 가운뎃점 등으로 분리된 각각의 단어 추가 (예: "中西", "聖輝")
+                stdName.split(/[・\s.．,]+/).forEach(word => {
+                    if (word) keywords.add(word);
+                });
+                
+                return Array.from(keywords);
+            };
+            // ========================================================
+
+            // 엑셀 내보내기 기능
+            window.exportToExcel = async () => {
+                const btn = document.getElementById('btn-export');
+                const msgDiv = document.getElementById('export-msg');
+                const originalText = btn.innerHTML;
+                
+                try {
+                    btn.innerHTML = '데이터 불러오는 중...';
+                    btn.disabled = true;
+                    msgDiv.style.display = 'none';
+
+                    const querySnapshot = await getDocs(translationsCol);
+                    
+                    if (querySnapshot.empty) {
+                        window.showAlert("알림", "출력할 선수 데이터가 없습니다.");
+                        return;
+                    }
+
+                    const excelData = [];
+                    let currentIndex = 1;
+
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        excelData.push({
+                            "번호": currentIndex++,
+                            "일본어 선수명": data.japanese || "",
+                            "한국어 선수명": data.korean || ""
+                        });
+                    });
+
+                    const worksheet = XLSX.utils.json_to_sheet(excelData);
+                    worksheet['!cols'] = [
+                        { wpx: 50 },  { wpx: 200 }, { wpx: 200 } 
+                    ];
+
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, "선수목록");
+
+                    const today = new Date();
+                    const dateString = `${today.getFullYear()}${(today.getMonth()+1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}`;
+                    const fileName = `NPB_선수목록_${dateString}.xlsx`;
+
+                    XLSX.writeFile(workbook, fileName);
+
+                } catch (error) {
+                    console.error("엑셀 다운로드 중 오류 발생:", error);
+                    msgDiv.innerText = "엑셀 추출 중 오류가 발생했습니다. 개발자 도구를 확인해주세요.";
+                    msgDiv.style.display = 'block';
+                } finally {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            };
+
+            const translateText = async () => {
+                const japaneseInput = document.getElementById('japanese-input').value.trim();
+                const resultDiv = document.getElementById('translation-result');
+                
+                if (!japaneseInput) {
+                    resultDiv.innerHTML = '번역 결과가 여기에 표시됩니다.';
+                    resultDiv.style.color = '#606770';
+                    return;
+                }
+
+                showLoader('translate-loader', true);
+                resultDiv.style.display = 'none';
+
+                // 검색어 입력 시에도 표준화(Standardize) 로직을 거치도록 수정
+                const names = japaneseInput.split('\n')
+                    .map(name => standardizeName(name))
+                    .filter(name => name);
+                
+                const uniqueNames = [...new Set(names)];
+
+                try {
+                    const MAX_IN_QUERIES = 10;
+                    const queryChunks = [];
+                    for (let i = 0; i < uniqueNames.length; i += MAX_IN_QUERIES) {
+                        const chunk = uniqueNames.slice(i, i + MAX_IN_QUERIES);
+                        const q = query(translationsCol, where("search_keywords", "array-contains-any", chunk));
+                        queryChunks.push(getDocs(q));
+                    }
+
+                    const snapshotGroups = await Promise.all(queryChunks);
+                    
+                    temporaryEditData = {};
+                    const allDocs = new Map();
+
+                    snapshotGroups.forEach(snapshot => {
+                        snapshot.docs.forEach(doc => {
+                            if (!allDocs.has(doc.id)) {
+                                allDocs.set(doc.id, doc.data());
+                            }
+                        });
+                    });
+
+                    const results = new Map();
+                    uniqueNames.forEach(name => {
+                        const foundPlayers = [];
+                        allDocs.forEach((data, docId) => {
+                            if (data.search_keywords && data.search_keywords.includes(name)) {
+                                temporaryEditData[docId] = { japanese: data.japanese, korean: data.korean };
+                                foundPlayers.push({ data, docId });
+                            }
+                        });
+                        results.set(name, foundPlayers);
+                    });
+
+                    const resultBlocks = [];
+                    uniqueNames.forEach(name => {
+                        const players = results.get(name);
+                        if (players && players.length > 0) {
+                            const playerHtml = players.map(p => `
+                                <div class="result-item">
+                                    <div>
+                                        <span class="japanese-name">${p.data.japanese}</span>
+                                        <span class="korean-name">${p.data.korean}</span>
+                                    </div>
+                                    <button class="edit-button" onclick="openEditModal('${p.docId}')">수정</button>
+                                </div>`).join('');
+                            resultBlocks.push(playerHtml);
+                        } else {
+                             resultBlocks.push(`
+                                <div class="result-item">
+                                    <div>
+                                        <span class="japanese-name">${name}</span>
+                                        <span class="korean-name" style="color: #e74c3c;">(찾을 수 없음)</span>
+                                    </div>
+                                </div>`);
+                        }
+                    });
+
+                    if (resultBlocks.length === 0) {
+                        resultDiv.innerHTML = '(찾을 수 없음)';
+                    } else {
+                        resultDiv.innerHTML = resultBlocks.join('<hr>');
+                    }
+                    
+                    resultDiv.style.color = '#2c3e50';
+
+                } catch (error) {
+                    console.error("검색 중 오류 발생: ", error);
+                    if (error.code === 'failed-precondition') {
+                        resultDiv.innerHTML = `<strong>데이터베이스 오류</strong><br>검색에 필요한 색인(index)이 없습니다.`;
+                    } else {
+                        resultDiv.innerText = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                    }
+                    resultDiv.style.color = 'red';
+                } finally {
+                    showLoader('translate-loader', false);
+                    resultDiv.style.display = 'block';
+                }
+            };
+            
+            window.openEditModal = (docId) => {
+                const data = temporaryEditData[docId];
+                if (!data) return;
+                document.getElementById('edit-doc-id').value = docId;
+                document.getElementById('edit-japanese-name').value = data.japanese;
+                document.getElementById('edit-korean-name').value = data.korean;
+                document.getElementById('edit-result').innerText = '';
+                openModal('edit-player-modal');
+            };
+
+            window.saveChanges = async () => {
+                const docId = document.getElementById('edit-doc-id').value;
+                // 수정 시에도 이름 저장 형식을 표준화합니다.
+                const newJapanese = standardizeName(document.getElementById('edit-japanese-name').value);
+                const newKorean = document.getElementById('edit-korean-name').value.trim();
+                const resultDiv = document.getElementById('edit-result');
+
+                if (!newJapanese || !newKorean) {
+                    resultDiv.innerText = "이름을 비워둘 수 없습니다.";
+                    resultDiv.style.color = 'red';
+                    return;
+                }
+
+                const playerRef = doc(db, "translations", docId);
+                const newKeywords = createKeywords(newJapanese);
+
+                try {
+                    await updateDoc(playerRef, {
+                        japanese: newJapanese,
+                        korean: newKorean,
+                        search_keywords: newKeywords
+                    });
+                    resultDiv.innerText = "성공적으로 저장되었습니다.";
+                    resultDiv.style.color = 'green';
+                    setTimeout(() => {
+                        closeModal('edit-player-modal');
+                        translateText(); 
+                    }, 1000);
+                } catch (error) {
+                    resultDiv.innerText = "저장 중 오류가 발생했습니다.";
+                    resultDiv.style.color = 'red';
+                }
+            };
+
+            window.deletePlayer = () => {
+                const japaneseName = document.getElementById('edit-japanese-name').value;
+                const resultDiv = document.getElementById('edit-result');
+                
+                resultDiv.innerHTML = `<strong>${japaneseName}</strong> 선수를 정말 삭제하시겠습니까? <br/>
+                    <button id="confirm-delete-btn" style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 10px;">네, 삭제합니다</button>
+                    <button id="cancel-delete-btn" style="background-color: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; margin-top: 10px; margin-left: 5px;">취소</button>`;
+                
+                document.getElementById('confirm-delete-btn').onclick = () => {
+                    const docId = document.getElementById('edit-doc-id').value;
+                    confirmDelete(docId);
+                };
+                document.getElementById('cancel-delete-btn').onclick = () => {
+                    resultDiv.innerHTML = '';
+                };
+            };
+            
+            const confirmDelete = async (docId) => {
+                 const resultDiv = document.getElementById('edit-result');
+                 try {
+                    await deleteDoc(doc(db, "translations", docId));
+                    resultDiv.innerText = "성공적으로 삭제되었습니다.";
+                    resultDiv.style.color = 'green';
+                    setTimeout(() => {
+                        closeModal('edit-player-modal');
+                        translateText(); 
+                    }, 1000);
+                 } catch (error) {
+                    resultDiv.innerText = "삭제 중 오류가 발생했습니다.";
+                    resultDiv.style.color = 'red';
+                 }
+            };
+            
+            window.addSingleTranslation = async () => {
+                // 단일 추가 시 이름 형식을 1차적으로 표준화합니다.
+                const japanese = standardizeName(document.getElementById('add-japanese-single').value);
+                const korean = document.getElementById('add-korean-single').value.trim();
+                const resultDiv = document.getElementById('add-result');
+
+                if (!japanese || !korean) {
+                    resultDiv.innerText = '일본어와 한국어 이름을 모두 입력해주세요.';
+                    resultDiv.style.color = 'red';
+                    return;
+                }
+                
+                try {
+                    const q = query(translationsCol, where("japanese", "==", japanese));
+                    const querySnapshot = await getDocs(q);
+
+                    if (!querySnapshot.empty) {
+                        resultDiv.innerText = '이미 등록된 선수입니다.';
+                        resultDiv.style.color = '#f39c12';
+                        return;
+                    }
+
+                    const keywords = createKeywords(japanese);
+
+                    await addDoc(translationsCol, {
+                        japanese: japanese,
+                        korean: korean,
+                        search_keywords: keywords,
+                        createdAt: serverTimestamp()
+                    });
+
+                    resultDiv.innerText = `✅ ${korean}(${japanese}) 선수가 성공적으로 추가되었습니다!`;
+                    resultDiv.style.color = '#2ecc71';
+                    document.getElementById('add-japanese-single').value = '';
+                    document.getElementById('add-korean-single').value = '';
+
+                } catch (error) {
+                    resultDiv.innerText = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                    resultDiv.style.color = 'red';
+                }
+            };
+
+            window.addMultipleTranslations = async () => {
+                const japaneseInput = document.getElementById('add-multiple-japanese').value.trim();
+                const koreanInput = document.getElementById('add-multiple-korean').value.trim();
+                const resultDiv = document.getElementById('add-multiple-result');
+
+                if (!japaneseInput || !koreanInput) {
+                    resultDiv.innerText = '양쪽 칸에 추가할 선수 정보를 입력해주세요.';
+                    resultDiv.style.color = 'red';
+                    return;
+                }
+
+                const japaneseLines = japaneseInput.split('\n').filter(line => line.trim() !== '');
+                const koreanLines = koreanInput.split('\n').filter(line => line.trim() !== '');
+
+                if (japaneseLines.length !== koreanLines.length) {
+                    resultDiv.innerText = '일본어와 한국어 이름의 줄 수가 맞지 않습니다. 확인해주세요.';
+                    resultDiv.style.color = 'red';
+                    return;
+                }
+
+                // 여러 선수 추가 시 이름 형식을 1차적으로 표준화합니다.
+                const playersToAdd = japaneseLines.map((jpName, index) => ({
+                    japanese: standardizeName(jpName),
+                    korean: koreanLines[index].trim()
+                }));
+
+                if (playersToAdd.length === 0) {
+                    resultDiv.innerText = '추가할 선수 정보가 없습니다.';
+                    resultDiv.style.color = 'red';
+                    return;
+                }
+                
+                resultDiv.innerText = '선수 데이터를 확인 중입니다...';
+                resultDiv.style.color = '#3498db';
+
+                try {
+                    let addedCount = 0;
+                    let duplicateCount = 0;
+                    
+                    const allJapaneseNames = playersToAdd.map(p => p.japanese);
+                    const existingNames = new Set();
+                    
+                    for (let i = 0; i < allJapaneseNames.length; i += 10) {
+                        const chunk = allJapaneseNames.slice(i, i + 10);
+                        if (chunk.length > 0) {
+                            const q = query(translationsCol, where("japanese", "in", chunk));
+                            const querySnapshot = await getDocs(q);
+                            querySnapshot.forEach(doc => {
+                                existingNames.add(doc.data().japanese);
+                            });
+                        }
+                    }
+                    
+                    const batch = writeBatch(db);
+                    for (const player of playersToAdd) {
+                        if (existingNames.has(player.japanese)) {
+                            duplicateCount++;
+                        } else {
+                            const keywords = createKeywords(player.japanese);
+                            const newDocRef = doc(collection(db, "translations"));
+                            batch.set(newDocRef, {
+                                japanese: player.japanese,
+                                korean: player.korean,
+                                search_keywords: keywords,
+                                createdAt: serverTimestamp()
+                            });
+                            addedCount++;
+                            existingNames.add(player.japanese);
+                        }
+                    }
+
+                    if (addedCount > 0) {
+                        await batch.commit();
+                    }
+
+                    let resultMessage = `✅ ${addedCount}명의 선수가 성공적으로 추가되었습니다.`;
+                    if (duplicateCount > 0) {
+                        resultMessage += `\n⚠️ ${duplicateCount}명은 이미 등록된 선수입니다.`;
+                    }
+
+                    resultDiv.innerText = resultMessage;
+                    resultDiv.style.color = '#2c3e50';
+                    document.getElementById('add-multiple-japanese').value = '';
+                    document.getElementById('add-multiple-korean').value = '';
+
+                } catch (error) {
+                    resultDiv.innerText = '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                    resultDiv.style.color = 'red';
+                }
+            };
+
+            let debounceTimer;
+            const japaneseInputEl = document.getElementById('japanese-input');
+
+            japaneseInputEl.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    translateText();
+                }, 500); 
+            });
+        }
+    </script>
+</body>
+</html>
+
+
+```
+
